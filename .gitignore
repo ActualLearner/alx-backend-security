@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*.sqlite3
+*.pot
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+*.env
+*.env.*
+
+# Django specific
+db.sqlite3
+media/
+staticfiles/
+
+# VSCode
+.vscode/
+
+# macOS
+.DS_Store
+
+# Pip
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Coverage / testing
+htmlcov/
+.tox/
+.coverage
+coverage.xml
+nosetests.xml
+testdb.sqlite
+
+# Migrations (optional — only if you want to exclude them, usually not recommended)
+# **/migrations/
+
+# MyPy / Pyright
+.mypy_cache/
+.pyright/
+
+# Others
+*.swp
+*.swo
