@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+from celery.schedules import crontab
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -37,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'ip_tracking',
 ]
 
 MIDDLEWARE = [
@@ -49,6 +51,31 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# Add ratelimit middleware
+MIDDLEWARE.insert(0, 'django_ratelimit.middleware.RateLimitMiddleware')
+
+RATELIMIT_ENABLE = True
+RATELIMIT_USE_CACHE = 'default'
+
+# Define rate limit groups
+RATELIMIT_GROUPS = {
+    'authenticated': {
+        'key': 'user_or_ip',  # Use user if authenticated, otherwise fallback to IP
+        'rate': '10/m',      # 10 requests per minute
+        'method': 'ALL',
+        # Apply only if user is authenticated
+        'group': lambda r: r.user.is_authenticated(),
+    },
+    'anonymous': {
+        'key': 'ip',         # Key on IP address
+        'rate': '5/m',       # 5 requests per minute
+        'method': 'ALL',
+        # Apply only if user is anonymous
+        'group': lambda r: not r.user.is_authenticated(),
+    }
+}
+
 
 ROOT_URLCONF = 'security_project.urls'
 
@@ -80,6 +107,13 @@ DATABASES = {
     }
 }
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -98,6 +132,23 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+
+# CELERY
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+
+# Celery Beat Settings (for scheduling)
+
+CELERY_BEAT_SCHEDULE = {
+    'detect-suspicious-ips-hourly': {
+        'task': 'ip_tracking.tasks.detect_suspicious_ips',
+        # Runs at the start of every hour
+        'schedule': crontab(minute='0', hour='*'),
+    },
+}
 
 
 # Internationalization
